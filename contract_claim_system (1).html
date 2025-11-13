@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contract Monthly Claim System — Developer Version</title>
+  <style>
+    :root{
+        --bg:#f4f7fb;
+        --card:#ffffff;
+        --primary:#2563eb;
+        --muted:#6b7280;
+        --success:#16a34a;
+        --danger:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{
+        font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+        background:linear-gradient(180deg, #eef2ff 0%, var(--bg) 100%);
+        margin:0;
+        color:#0f172a;
+        -webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header.header{display:flex;align-items:center;justify-content:space-between;background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,0.08);}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;box-shadow:0 6px 18px rgba(37,99,235,0.15);}
+    h1{font-size:18px;margin:0;font-weight:600}
+    .header-actions{display:flex;gap:10px;align-items:center}
+    .user-chip{background:linear-gradient(90deg,#f8fafc, #ffffff);padding:8px 12px;border-radius:999px;border:1px solid #eef2ff;color:var(--muted);font-size:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+    .btn-ghost{background:transparent;border:1px solid transparent;color:var(--primary)}
+    .btn-primary{background:var(--primary);color:white;box-shadow:0 6px 18px rgba(37,99,235,0.12)}
+    nav{margin-top:16px;display:flex;gap:12px}
+    .tabs{display:flex;gap:6px}
+    .tab{padding:10px 14px;background:transparent;border-radius:8px;border:none;color:var(--muted);cursor:pointer;font-weight:600}
+    .tab.active{background:linear-gradient(90deg,#eef2ff,#f8fafc);color:var(--primary);box-shadow:inset 0 -1px 0 rgba(0,0,0,0.02)}
+    main.card{background:var(--card);margin-top:18px;padding:20px;border-radius:12px;box-shadow:0 12px 30px rgba(15,23,42,0.05)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .small-card{background:linear-gradient(180deg,#ffffff, #fbfdff);padding:16px;border-radius:10px;text-align:center;border:1px solid #f1f5f9}
+    .small-card .title{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .small-card .value{font-size:20px;font-weight:700;color:var(--primary)}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}
+    .section-title h2{margin:0;font-size:16px}
+    .table{width:100%;border-collapse:collapse;margin-top:8px}
+    .table th,.table td{padding:10px 12px;text-align:left;border-bottom:1px solid #eef2ff;font-size:14px}
+    .status{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px}
+    .status.pending{background:#fff7ed;color:#92400e}
+    .status.approved{background:#ecfdf5;color:#065f46}
+    .status.rejected{background:#fff1f2;color:#7f1d1d}
+    form .row{display:flex;gap:12px}
+    .col{flex:1}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600}
+    input[type="text"],input[type="number"],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8;background:transparent;font-size:14px;}
+    textarea{min-height:90px;resize:vertical}
+    .upload-area{border:2px dashed #e6eef8;border-radius:10px;padding:18px;text-align:center;color:var(--muted);cursor:pointer}
+    .actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .muted{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;align-items:center}
+    .filter{padding:8px;border-radius:8px;border:1px solid #eef2ff;background:transparent}
+    .empty{padding:18px;text-align:center;color:var(--muted)}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center;z-index:999}
+    .modal{background:var(--card);padding:18px;border-radius:10px;max-width:600px;width:90%;box-shadow:0 20px 40px rgba(2,6,23,0.4)}
+    .modal header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .modal .modal-body{font-size:14px;color:#0f172a}
+    .close-btn{background:transparent;border:none;font-weight:700;font-size:16px;cursor:pointer}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.wrap{padding:12px}}
+    @media(max-width:600px){.grid{grid-template-columns:repeat(1,1fr)}nav{flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">CC</div>
+        <div>
+          <h1>Contract Monthly Claim System</h1>
+          <div class="muted" style="font-size:13px">Organise and submit monthly lecturer claims</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="user-chip" id="user-chip">Bohlokwa Letsoso · Lecturer</div>
+        <button class="btn btn-ghost" id="toggle-role" title="Toggle role for demo">Switch to Coordinator</button>
+        <button class="btn btn-primary" id="logout">Logout</button>
+      </div>
+    </header>
+
+    <nav>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="submit-claim">Submit Claim</button>
+        <button class="tab" data-tab="my-claims">My Claims</button>
+        <button class="tab" data-tab="verify-claims" id="verify-tab" style="display:none">Verify Claims</button>
+      </div>
+
+      <div style="margin-left:auto" class="controls">
+        <div class="muted">Last update: <strong id="last-updated">--</strong></div>
+      </div>
+    </nav>
+
+    <main class="card">
+      <section id="dashboard" class="panel">
+        <div class="grid" style="margin-bottom:12px">
+          <div class="small-card">
+            <div class="title">Total Claims</div>
+            <div class="value" id="total-claims">0</div>
+          </div>
+          <div class="small-card">
+            <div class="title">Pending</div>
+            <div class="value" id="pending-claims">0</div>
+          </div>
+          <div class="small-card">
+            <div class="title">Approved</div>
+            <div class="value" id="approved-claims">0</div>
+          </div>
+          <div class="small-card">
+            <div class="title">This Month Total</div>
+            <div class="value" id="monthly-total">R0.00</div>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <h2>Recent Activity</h2>
+          <div class="muted">Showing last 5 items</div>
+        </div>
+
+        <table class="table" id="recent-activity">
+          <thead>
+            <tr><th>Date</th><th>Activity</th><th>Status</th><th>Amount</th></tr>
+          </thead>
+          <tbody id="recent-activity-body"></tbody>
+        </table>
+      </section>
+
+      <section id="submit-claim" class="panel" style="display:none">
+        <div class="section-title">
+          <h2>Submit New Monthly Claim</h2>
+          <div class="muted">Fill in details and attach supporting documents</div>
+        </div>
+
+        <div id="submit-alert" style="display:none;padding:10px;border-radius:8px;margin-bottom:12px"></div>
+
+        <form id="claim-form">
+          <div class="row">
+            <div class="col">
+              <label for="contract-select">Select Contract</label>
+              <select id="contract-select" required>
+                <option value="">-- Select Contract --</option>
+                <option value="PROG101">Programming Fundamentals - PROG101</option>
+                <option value="DB201">Database Systems - DB201</option>
+                <option value="WEB301">Web Development - WEB301</option>
+              </select>
+            </div>
+            <div class="col">
+              <label for="claim-month">Claim Month</label>
+              <select id="claim-month" required>
+                <option value="">-- Select Month --</option>
+                <option value="2025-06">June 2025</option>
+                <option value="2025-07">July 2025</option>
+                <option value="2025-08">August 2025</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div class="col">
+              <label for="hours-worked">Hours Worked</label>
+              <input id="hours-worked" type="number" min="1" max="300" placeholder="e.g. 20" required>
+            </div>
+            <div class="col">
+              <label for="hourly-rate">Hourly Rate</label>
+              <input id="hourly-rate" type="text" value="R350.00" readonly>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label for="claim-notes">Notes (optional)</label>
+            <textarea id="claim-notes" placeholder="Extra details..."></textarea>
+          </div>
+
+          <div style="margin-top:12px">
+            <label>Supporting Documents</label>
+            <div class="upload-area" id="upload-area">
+              <div class="muted">Click to select files or drag & drop (PDF, DOCX, XLSX) — Max 10MB each</div>
+              <input id="file-input" type="file" multiple style="display:none" />
+            </div>
+            <div id="uploaded-files" style="margin-top:8px;color:var(--muted)">No files uploaded</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="submit">Submit Claim</button>
+            <button class="btn" type="button" id="save-draft">Save Draft</button>
+            <button class="btn" type="button" id="cancel-submit">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="my-claims" class="panel" style="display:none">
+        <div class="section-title">
+          <h2>My Claims History</h2>
+          <div class="controls">
+            <label class="muted">Filter</label>
+            <select id="filter-status" class="filter">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <table class="table" id="claims-table">
+          <thead>
+            <tr><th>Claim ID</th><th>Contract</th><th>Month</th><th>Hours</th><th>Amount</th><th>Status</th><th>Submitted</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="claims-table-body"></tbody>
+        </table>
+      </section>
+
+      <section id="verify-claims" class="panel" style="display:none">
+        <div class="section-title">
+          <h2>Verify Claims</h2>
+          <div class="muted">Coordinator view — approve or reject claims</div>
+        </div>
+
+        <table class="table">
+          <thead><tr><th>Claim ID</th><th>Lecturer</th><th>Contract</th><th>Month</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="verify-table-body"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-hidden="true">
+    <div class="modal" role="document" aria-modal="true">
+      <header>
+        <strong id="modal-title">Claim Details</strong>
+        <button class="close-btn" id="modal-close" aria-label="Close">&times;</button>
+      </header>
+      <div class="modal-body" id="modal-body"></div>
+      <footer style="margin-top:12px;text-align:right">
+        <button class="btn" id="modal-download">Download PDF</button>
+        <button class="btn btn-primary" id="modal-close-2">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'ccs_claims_v1';
+    const INIT_FLAG = 'ccs_initialized_v1';
+    const HOURLY_RATE = 350.00;
+
+    let claims = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let currentUser = { name: 'Bohlokwa Letsoso', role: 'Lecturer' };
+    let uploadedFiles = [];
+
+    function saveClaims(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(claims)); updateAll(); }
+    function formatCurrency(n){ return 'R' + Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function todayTimestamp(){ return new Date().toISOString().slice(0,16).replace('T',' '); }
+    function generateId(){ const max = claims.length ? Math.max(...claims.map(c=>parseInt(c.id.split('-')[1])||1000)) : 1000; return 'CL-' + (max + 1); }
+
+    function seedSampleData(){
+      if(localStorage.getItem(INIT_FLAG)) return;
+      const sample = [
+        { id: 'CL-1001', lecturer: 'Bohlokwa Letsoso', contract: 'PROG101', month: '2025-06', hours: 20, amount: 20 * HOURLY_RATE, status: 'pending', submittedDate: '2025-06-05 09:12', notes: 'June sessions - Weekday labs' },
+        { id: 'CL-1002', lecturer: 'Bohlokwa Letsoso', contract: 'DB201', month: '2025-06', hours: 15, amount: 15 * HOURLY_RATE, status: 'approved', submittedDate: '2025-06-02 14:30', notes: 'Database practicals' },
+        { id: 'CL-1003', lecturer: 'Jane Smith', contract: 'WEB301', month: '2025-06', hours: 25, amount: 25 * HOURLY_RATE, status: 'rejected', submittedDate: '2025-06-07 11:05', notes: 'Missing attendance list' }
+      ];
+      claims = sample.concat(claims);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(claims));
+      localStorage.setItem(INIT_FLAG, '1');
+    }
+
+    function updateDashboard(){
+      const total = claims.length;
+      const pending = claims.filter(c=>c.status==='pending').length;
+      const approved = claims.filter(c=>c.status==='approved').length;
+      const monthlyTotal = claims.filter(c=>c.status==='approved').reduce((s,c)=>s+c.amount,0);
+
+      document.getElementById('total-claims').textContent = total;
+      document.getElementById('pending-claims').textContent = pending;
+      document.getElementById('approved-claims').textContent = approved;
+      document.getElementById('monthly-total').textContent = formatCurrency(monthlyTotal);
+      document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+      const tbody = document.getElementById('recent-activity-body');
+      tbody.innerHTML = '';
+      claims.slice(-5).reverse().forEach(c=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${c.submittedDate}</td>
+                        <td>${(c.lecturer?c.lecturer+': ':'')}${c.contract} — ${c.notes||''}</td>
+                        <td><span class="status ${c.status}">${c.status.charAt(0).toUpperCase()+c.status.slice(1)}</span></td>
+                        <td>${formatCurrency(c.amount)}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateClaimsTable(filter=''){
+      const tbody = document.getElementById('claims-table-body');
+      tbody.innerHTML = '';
+      const list = filter ? claims.filter(c=>c.status===filter) : claims;
+      if(list.length===0){ tbody.innerHTML = '<tr><td colspan="8" class="empty">No claims found</td></tr>'; return; }
+      list.forEach(c=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${c.id}</td>
+                        <td>${c.contract}</td>
+                        <td>${c.month}</td>
+                        <td>${c.hours}</td>
+                        <td>${formatCurrency(c.amount)}</td>
+                        <td><span class="status ${c.status}">${c.status.charAt(0).toUpperCase()+c.status.slice(1)}</span></td>
+                        <td>${c.submittedDate}</td>
+                        <td>
+                          <button class="btn" data-action="view" data-id="${c.id}">View</button>
+                          ${c.status==='pending' && currentUser.role==='Coordinator' ? `<button class="btn" data-action="approve" data-id="${c.id}">Approve</button>
+                          <button class="btn" data-action="reject" data-id="${c.id}">Reject</button>` : ''}
+                        </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateVerifyTable(){
+      const body = document.getElementById('verify-table-body');
+      body.innerHTML = '';
+      const pending = claims.filter(c=>c.status==='pending');
+      if(pending.length===0){ body.innerHTML = '<tr><td colspan="7" class="empty">No pending claims</td></tr>'; return; }
+      pending.forEach(c=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${c.id}</td>
+                        <td>${c.lecturer||'Unknown'}</td>
+                        <td>${c.contract}</td>
+                        <td>${c.month}</td>
+                        <td>${formatCurrency(c.amount)}</td>
+                        <td><span class="status pending">Pending</span></td>
+                        <td>
+                          <button class="btn" data-action="approve" data-id="${c.id}">Approve</button>
+                          <button class="btn" data-action="reject" data-id="${c.id}">Reject</button>
+                        </td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function updateAll(){ updateDashboard(); updateClaimsTable(document.getElementById('filter-status').value); updateVerifyTable(); }
+
+    document.querySelectorAll('.tab').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+        document.getElementById(tab).style.display = 'block';
+      });
+    });
+
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const uploadedFilesEl = document.getElementById('uploaded-files');
+
+    uploadArea.addEventListener('click', ()=>fileInput.click());
+    uploadArea.addEventListener('dragover', e=>{ e.preventDefault(); uploadArea.style.borderColor='#c7def8'; });
+    uploadArea.addEventListener('dragleave', e=>{ uploadArea.style.borderColor='#e6eef8'; });
+    uploadArea.addEventListener('drop', e=>{ e.preventDefault(); fileInput.files = e.dataTransfer.files; handleFiles(fileInput.files); });
+
+    fileInput.addEventListener('change', ()=>handleFiles(fileInput.files));
+
+    function handleFiles(files){
+      uploadedFiles = [];
+      const list = [];
+      for(const f of files){
+        if(f.size > 10 * 1024 * 1024) { list.push(f.name + ' (file too large)'); continue; }
+        list.push(f.name);
+        uploadedFiles.push({name:f.name,size:f.size,type:f.type});
+      }
+      uploadedFilesEl.textContent = list.length? list.join(', ') : 'No files uploaded';
+    }
+
+    document.getElementById('claim-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      const contract = document.getElementById('contract-select').value;
+      const month = document.getElementById('claim-month').value;
+      const hours = parseFloat(document.getElementById('hours-worked').value);
+      const notes = document.getElementById('claim-notes').value.trim();
+      if(!contract || !month || !hours || hours<=0){ showSubmitAlert('Please complete all required fields','error'); return; }
+
+      const id = generateId();
+      const amount = Number((hours * HOURLY_RATE).toFixed(2));
+      const claim = {
+        id, lecturer: currentUser.name, contract, month, hours, amount,
+        status: 'pending', submittedDate: todayTimestamp(), notes, files: uploadedFiles
+      };
+      claims.push(claim);
+      saveClaims();
+
+      showSubmitAlert('Claim submitted successfully','success');
+      document.getElementById('claim-form').reset();
+      uploadedFiles = []; uploadedFilesEl.textContent = 'No files uploaded';
+    });
+
+    document.getElementById('save-draft').addEventListener('click', ()=>{
+      const contract = document.getElementById('contract-select').value;
+      const month = document.getElementById('claim-month').value;
+      const hours = parseFloat(document.getElementById('hours-worked').value||0);
+      const notes = document.getElementById('claim-notes').value.trim();
+      if(!contract && !month && !hours){ showSubmitAlert('Nothing to save as draft','error'); return; }
+      const id = generateId();
+      const amount = Number((hours * HOURLY_RATE).toFixed(2));
+      const claim = { id, lecturer: currentUser.name, contract, month, hours, amount, status: 'pending', submittedDate: todayTimestamp(), notes, files: uploadedFiles, draft:true };
+      claims.push(claim); saveClaims();
+      showSubmitAlert('Draft saved locally','info');
+      document.getElementById('claim-form').reset(); uploadedFiles=[]; uploadedFilesEl.textContent='No files uploaded';
+    });
+
+    document.getElementById('cancel-submit').addEventListener('click', ()=>{
+      document.getElementById('claim-form').reset(); uploadedFiles=[]; uploadedFilesEl.textContent='No files uploaded';
+    });
+
+    function showSubmitAlert(msg,type='info'){
+      const el = document.getElementById('submit-alert');
+      el.style.display='block';
+      el.textContent = msg;
+      if(type==='success'){ el.style.background='#ecfdf5'; el.style.border='1px solid #bbf7d0'; el.style.color='#064e3b'; }
+      else if(type==='error'){ el.style.background='#fff1f2'; el.style.border='1px solid #fecaca'; el.style.color='#7f1d1d'; }
+      else { el.style.background='#eff6ff'; el.style.border='1px solid #c7def8'; el.style.color='#1e3a8a'; }
+      setTimeout(()=> el.style.display='none', 4200);
+    }
+
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-action]');
+      if(!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if(action==='approve'){ updateClaimStatus(id,'approved'); }
+      if(action==='reject'){ updateClaimStatus(id,'rejected'); }
+      if(action==='view'){ viewClaim(id); }
+    });
+
+    function updateClaimStatus(id,status){
+      const idx = claims.findIndex(c=>c.id===id);
+      if(idx===-1) return alert('Claim not found');
+      claims[idx].status = status;
+      saveClaims();
+      updateAll();
+    }
+
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const modalBody = document.getElementById('modal-body');
+    const modalTitle = document.getElementById('modal-title');
+    const modalClose = document.getElementById('modal-close');
+    const modalClose2 = document.getElementById('modal-close-2');
+    const modalDownload = document.getElementById('modal-download');
+
+    modalClose.addEventListener('click', closeModal);
+    modalClose2.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) closeModal(); });
+
+    function viewClaim(id){
+      const c = claims.find(x=>x.id===id);
+      if(!c) return alert('Claim not found');
+      modalTitle.textContent = `Claim ${c.id} — ${c.contract}`;
+      modalBody.innerHTML = `
+        <p><strong>Lecturer:</strong> ${c.lecturer}</p>
+        <p><strong>Month:</strong> ${c.month}</p>
+        <p><strong>Hours:</strong> ${c.hours}</p>
+        <p><strong>Amount:</strong> ${formatCurrency(c.amount)}</p>
+        <p><strong>Status:</strong> <span class="status ${c.status}">${c.status.charAt(0).toUpperCase()+c.status.slice(1)}</span></p>
+        <p><strong>Submitted:</strong> ${c.submittedDate}</p>
+        <p><strong>Notes:</strong> ${c.notes||'-'}</p>
+        <p><strong>Files:</strong> ${c.files && c.files.length ? c.files.map(f=>f.name).join(', ') : '-'}</p>
+      `;
+      modalDownload.onclick = ()=> downloadClaimPdf(c);
+      openModal();
+    }
+
+    function openModal(){ modalBackdrop.style.display='flex'; modalBackdrop.setAttribute('aria-hidden','false'); }
+    function closeModal(){ modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); }
+
+    document.getElementById('filter-status').addEventListener('change', ()=> updateClaimsTable(document.getElementById('filter-status').value));
+
+    const toggleRoleBtn = document.getElementById('toggle-role');
+    toggleRoleBtn.addEventListener('click', ()=>{
+      currentUser.role = currentUser.role === 'Lecturer' ? 'Coordinator' : 'Lecturer';
+      document.getElementById('user-chip').textContent = currentUser.name + ' · ' + currentUser.role;
+      document.getElementById('verify-tab').style.display = currentUser.role === 'Coordinator' ? 'inline-block' : 'none';
+      updateAll();
+      toggleRoleBtn.textContent = currentUser.role === 'Coordinator' ? 'Switch to Lecturer' : 'Switch to Coordinator';
+    });
+
+    document.getElementById('logout').addEventListener('click', ()=> alert('Logout clicked (demo)'));
+
+    function downloadClaimPdf(claim){
+      const html = `
+        <html>
+          <head>
+            <title>Claim ${claim.id}</title>
+            <style>
+              body{font-family:Arial,Helvetica,sans-serif;padding:20px}
+              h1{font-size:18px}
+              .small{color:#6b7280}
+              table{width:100%;border-collapse:collapse;margin-top:10px}
+              td,th{padding:8px;border:1px solid #eee}
+            </style>
+          </head>
+          <body>
+            <h1>Claim ${claim.id}</h1>
+            <p class="small">Generated: ${new Date().toLocaleString()}</p>
+            <table>
+              <tr><th>Lecturer</th><td>${claim.lecturer}</td></tr>
+              <tr><th>Contract</th><td>${claim.contract}</td></tr>
+              <tr><th>Month</th><td>${claim.month}</td></tr>
+              <tr><th>Hours</th><td>${claim.hours}</td></tr>
+              <tr><th>Amount</th><td>${formatCurrency(claim.amount)}</td></tr>
+              <tr><th>Status</th><td>${claim.status}</td></tr>
+              <tr><th>Submitted</th><td>${claim.submittedDate}</td></tr>
+              <tr><th>Notes</th><td>${claim.notes||'-'}</td></tr>
+            </table>
+          </body>
+        </html>`;
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+
+    seedSampleData();
+    claims = JSON.parse(localStorage.getItem(STORAGE_KEY)) || claims;
+    document.getElementById('user-chip').textContent = currentUser.name + ' · ' + currentUser.role;
+    document.getElementById('verify-tab').style.display = currentUser.role === 'Coordinator' ? 'inline-block' : 'none';
+    updateAll();
+  </script>
+</body>
+</html>
